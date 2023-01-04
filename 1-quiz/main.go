@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"encoding/csv"
 	"flag"
 	"fmt"
@@ -23,6 +24,20 @@ Sources
 
 var DEFAULT_FILEPATH = "problems.csv"
 var DEFAULT_TIME_LIMIT = 30
+
+// getUserInput uses Buffered I/O to read in user input from the command line.
+// This allows for user input with spaces.
+func getUserInput() string {
+
+	in := bufio.NewReader(os.Stdin)
+
+	result, err := in.ReadString('\n')
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	return result
+}
 
 // getQuizData reads in a file from the specified filepath and returns the
 // data.
@@ -55,21 +70,27 @@ func getQuizData(filepath string) [][]string {
 // 'timeLimit'.
 func executeQuiz(data [][]string, timeLimit int) int {
 
-	var userResponse string
-
 	resultChannel := make(chan int, 1)
 	timeoutChannel := time.After(time.Duration(timeLimit) * time.Second)
 
 	score := 0
 	for i, row := range data {
+
 		fmt.Printf("%d. %s?\n", i+1, row[0])
 
 		go func() {
-			// TODO: CHANGE TO BUFIO SO IT CAN ACCEPT STRINGS WITH SPACES.
-			fmt.Scan(&userResponse)
+			userResponse := getUserInput()
+
+			processedUserResponse := strings.ReplaceAll(
+				strings.Trim(strings.ToLower(userResponse), "\n"), " ", "",
+			)
+
+			processedAnswer := strings.ReplaceAll(
+				strings.ToLower(row[1]), " ", "",
+			)
 
 			result := 0
-			if userResponse == row[1] {
+			if processedUserResponse == processedAnswer {
 				result = 1
 			}
 
@@ -124,12 +145,9 @@ func main() {
 		timeLimit,
 	)
 
-	var userResponse string
+	userResponse := getUserInput()
 
-	// TODO: CHANGE TO BUFIO SO IT CAN ACCEPT STRINGS WITH SPACES.
-	fmt.Scanln(&userResponse)
-
-	if userResponse != "" {
+	if userResponse != "\n" {
 		fmt.Println("Text detected; terminating quiz.")
 		os.Exit(0)
 	}

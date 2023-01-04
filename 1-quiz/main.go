@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"strings"
 	"time"
@@ -24,6 +25,7 @@ Sources
 
 var DEFAULT_FILEPATH = "problems.csv"
 var DEFAULT_TIME_LIMIT = 30
+var DEFAULT_SHUFFLE = false
 
 // getUserInput uses Buffered I/O to read in user input from the command line.
 // This allows for user input with spaces.
@@ -129,15 +131,29 @@ func main() {
 		"Quiz duration (in seconds).",
 	)
 
+	var shuffleFlag bool
+	flag.BoolVar(
+		&shuffleFlag,
+		"shuffle",
+		DEFAULT_SHUFFLE,
+		"Shuffle the quiz data.",
+	)
+
 	flag.Parse()
 
 	data := getQuizData(filepath)
+
+	shuffleText := "Shuffling is off.\n"
+	if shuffleFlag {
+		shuffleText = "Shuffling is on.\n"
+	}
 
 	fmt.Printf(
 		strings.Join(
 			[]string{
 				"You are about to take a quiz.\n",
 				"The timer is set to %d seconds.\n",
+				shuffleText,
 				"Please press enter to begin.\n",
 			},
 			"",
@@ -150,6 +166,15 @@ func main() {
 	if userResponse != "\n" {
 		fmt.Println("Text detected; terminating quiz.")
 		os.Exit(0)
+	}
+
+	if shuffleFlag {
+		rand.Shuffle(
+			len(data),
+			func(i int, j int) {
+				data[i], data[j] = data[j], data[i]
+			},
+		)
 	}
 
 	score := executeQuiz(data, timeLimit)

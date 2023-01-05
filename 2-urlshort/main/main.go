@@ -19,7 +19,21 @@ func main() {
 		"YAML file that maps a path to an HTTP address for redirecting",
 	)
 
+	var json_file string
+	flag.StringVar(
+		&json_file,
+		"json_file",
+		"data/pathsToUrls.json",
+		"JSON file that maps a path to an HTTP address for redirecting",
+	)
+
 	flag.Parse()
+
+	// Read in data from JSON file.
+	jsn, err := ioutil.ReadFile(json_file)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Read in data from YAML file.
 	yml, err := ioutil.ReadFile(yaml_file)
@@ -42,8 +56,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Build the JSONHandler using the YAMLHandler as the
+	// fallback
+	jsonHandler, err := urlshort.JSONHandler(jsn, yamlHandler)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", yamlHandler)
+	http.ListenAndServe(":8080", jsonHandler)
 }
 
 func defaultMux() *http.ServeMux {

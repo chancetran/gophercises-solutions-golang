@@ -1,6 +1,7 @@
 package urlshort
 
 import (
+	"encoding/json"
 	"log"
 	"net/http"
 
@@ -67,6 +68,70 @@ func YAMLtoMap(yml []byte) map[string]string {
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 
 	pathsToUrls := YAMLtoMap(yml)
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if path, ok := pathsToUrls[r.URL.String()]; ok {
+			http.Redirect(w, r, path, http.StatusFound)
+		} else {
+			fallback.ServeHTTP(w, r)
+		}
+
+	}, nil
+}
+
+// JSONHandler will parse the provided JSON and then return
+// an http.HandlerFunc (which also implements http.Handler)
+// that will attempt to map any paths to their corresponding
+// URL. If the path is not provided in the JSON, then the
+// fallback http.Handler will be called instead.
+//
+// JSON is expected to be in the format:
+//
+//	{
+//			"mapping": [
+//				{
+//					"path": "..."
+//					"url": "..."
+//				},
+//				...
+//			]
+//	}
+//
+// The only errors that can be returned all related to having
+// invalid JSON data.
+//
+// See MapHandler to create a similar http.HandlerFunc via
+// a mapping of paths to urls.
+type URLs struct {
+	URLs []URL `json:"mapping"`
+}
+
+type URL struct {
+	Path string `json:"path"`
+	URL  string `json:"url"`
+}
+
+func JSONtoMap(jsn []byte) map[string]string {
+
+	u := URLs{}
+
+	err := json.Unmarshal(jsn, &u)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	result := make(map[string]string)
+	for _, entry := range u.URLs {
+		result[entry.Path] = entry.URL
+	}
+
+	return result
+}
+
+func JSONHandler(jsn []byte, fallback http.Handler) (http.HandlerFunc, error) {
+
+	pathsToUrls := JSONtoMap(jsn)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 

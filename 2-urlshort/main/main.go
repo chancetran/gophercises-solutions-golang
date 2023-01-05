@@ -7,6 +7,8 @@ import (
 	"log"
 	"net/http"
 	"urlshort"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 func main() {
@@ -27,7 +29,21 @@ func main() {
 		"JSON file that maps a path to an HTTP address for redirecting",
 	)
 
+	var boltdb_file string
+	flag.StringVar(
+		&boltdb_file,
+		"boltdb_file",
+		"data/pathsToUrls.db",
+		"bolt database that maps a path to an HTTP address for redirecting",
+	)
+
 	flag.Parse()
+
+	// Read in data from YAML file.
+	yml, err := ioutil.ReadFile(yaml_file)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	// Read in data from JSON file.
 	jsn, err := ioutil.ReadFile(json_file)
@@ -35,11 +51,12 @@ func main() {
 		log.Fatal(err)
 	}
 
-	// Read in data from YAML file.
-	yml, err := ioutil.ReadFile(yaml_file)
+	// Read in data from BoltDB database.
+	db, err := bolt.Open(boltdb_file, 0600, nil)
 	if err != nil {
 		log.Fatal(err)
 	}
+	defer db.Close()
 
 	mux := defaultMux()
 
@@ -63,8 +80,15 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
+
+	// Build the BoltHandler using the JSONHandler as the
+	// fallback
+	boltHandler, err := urlshort.BoltHandler(db, jsonHandler)
+	if err != nil {
+		panic(err)
+	}
 	fmt.Println("Starting the server on :8080")
-	http.ListenAndServe(":8080", jsonHandler)
+	http.ListenAndServe(":8080", boltHandler)
 }
 
 func defaultMux() *http.ServeMux {

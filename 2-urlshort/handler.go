@@ -2,10 +2,14 @@ package urlshort
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"log"
 	"net/http"
 
 	"gopkg.in/yaml.v2"
+
+	bolt "go.etcd.io/bbolt"
 )
 
 // MapHandler will return an http.HandlerFunc (which also
@@ -132,6 +136,56 @@ func JSONtoMap(jsn []byte) map[string]string {
 func JSONHandler(jsn []byte, fallback http.Handler) (http.HandlerFunc, error) {
 
 	pathsToUrls := JSONtoMap(jsn)
+
+	return func(w http.ResponseWriter, r *http.Request) {
+
+		if path, ok := pathsToUrls[r.URL.String()]; ok {
+			http.Redirect(w, r, path, http.StatusFound)
+		} else {
+			fallback.ServeHTTP(w, r)
+		}
+
+	}, nil
+}
+
+// BoltDBHandler will parse the provided JSON and then return
+// an http.HandlerFunc (which also implements http.Handler)
+// that will attempt to map any paths to their corresponding
+// URL. If the path is not provided in the BoltDB, then the
+// fallback http.Handler will be called instead.
+//
+// BoltDB entries are encoded and must be written to the
+// database using golang.
+//
+// The only errors that can be returned all related to having
+// invalid BoltDB entries.
+//
+// See MapHandler to create a similar http.HandlerFunc via
+// a mapping of paths to urls.
+func BoltDBtoMap(db *bolt.DB) map[string]string {
+
+	result := make(map[string]string)
+
+	db.View(func(tx *bolt.Tx) error {
+
+		b := tx.Bucket([]byte("mapping"))
+
+		fmt.Println("BoltDB entries:")
+		b.ForEach(func(k, v []byte) error {
+			fmt.Printf("%s: %s,\n", string(k), string(v))
+			result[string(k)] = string(v)
+			return nil
+		})
+
+		return errors.New("database failed during reading")
+	})
+
+	return result
+}
+
+func BoltHandler(blt *bolt.DB, fallback http.Handler) (http.HandlerFunc, error) {
+
+	pathsToUrls := BoltDBtoMap(blt)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 

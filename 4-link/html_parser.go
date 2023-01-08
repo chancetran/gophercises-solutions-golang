@@ -59,7 +59,7 @@ func ParseLinksFromHTTP(filepath string) []Link {
 	return links
 }
 
-//
+// BuildLink returns a Link using the specified 'link node'.
 func BuildLink(n *html.Node) Link {
 	var result Link
 
@@ -69,7 +69,8 @@ func BuildLink(n *html.Node) Link {
 		}
 	}
 
-	// getLinkNodeText ....
+	// getLinkNodeText traverses the sub-nodes of the specified
+	// node and returns the text component of a hyperlink.
 	var getLinkNodeText func(*html.Node) string
 	getLinkNodeText = func(n *html.Node) string {
 		if n.Type == html.TextNode {

@@ -3,8 +3,8 @@ package sitemap
 // Solution from Exercise 4.
 
 import (
+	"io"
 	"log"
-	"os"
 	"strings"
 
 	"golang.org/x/net/html"
@@ -15,25 +15,16 @@ type Link struct {
 	Text string
 }
 
-// ParseLinksFromHTTP parses the specified HTML file and
-// returns an array of Links.
-func ParseLinksFromHTTP(filepath string) []Link {
+// ParseLinks parses the specified HTML file and returns an
+// array of Links.
+func ParseLinks(r io.Reader) []Link {
+
+	dataHTML, err := html.Parse(r)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	var links []Link
-
-	data, err := os.Open(filepath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	dataHTML, err := html.Parse(data)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	defer data.Close()
-
-	var link_nodes []*html.Node
 
 	// getLinkNodes traverses through the HTML graph and appends
 	// 'link nodes' to `link_nodes`.
@@ -43,7 +34,7 @@ func ParseLinksFromHTTP(filepath string) []Link {
 		if n.Type == html.ElementNode && n.Data == "a" {
 			for _, attr := range n.Attr {
 				if attr.Key == "href" {
-					link_nodes = append(link_nodes, n)
+					links = append(links, BuildLink(n))
 				}
 			}
 		}
@@ -54,14 +45,11 @@ func ParseLinksFromHTTP(filepath string) []Link {
 	}
 	getLinkNodes(dataHTML)
 
-	for _, link_node := range link_nodes {
-		links = append(links, BuildLink(link_node))
-	}
-
 	return links
 }
 
-// BuildLink returns a Link using the specified 'link node'.
+// BuildLink returns a Link that is built using the specified
+// 'link node'.
 func BuildLink(n *html.Node) Link {
 	var result Link
 
@@ -72,12 +60,14 @@ func BuildLink(n *html.Node) Link {
 	}
 
 	// getLinkNodeText traverses the sub-nodes of the specified
-	// node and returns the text component of a hyperlink.
+	// node and returns the text component of the hyperlink.
 	var getLinkNodeText func(*html.Node) string
 	getLinkNodeText = func(n *html.Node) string {
+
 		if n.Type == html.TextNode {
 			return n.Data
 		}
+
 		if n.Type != html.ElementNode {
 			return ""
 		}

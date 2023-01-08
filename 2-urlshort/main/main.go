@@ -11,6 +11,17 @@ import (
 	bolt "go.etcd.io/bbolt"
 )
 
+/*
+Sources
+- https://gobyexample.com/http-servers
+- https://pkg.go.dev/net/http
+- https://gobyexample.com/maps
+- https://stackoverflow.com/questions/2050391/how-to-check-if-a-map-contains-a-key-in-go
+- https://golang.hotexamples.com/examples/http/-/Redirect/golang-redirect-function-examples.html
+- https://gobyexample.com/structs
+- https://suraj.io/post/golang-struct-tags-space/
+*/
+
 func main() {
 
 	var boltdb_file string

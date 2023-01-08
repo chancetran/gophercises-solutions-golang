@@ -31,27 +31,20 @@ func MapHandler(pathsToUrls map[string]string, fallback http.Handler) http.Handl
 	}
 }
 
-// YAMLHandler will parse the provided YAML and then return
-// an http.HandlerFunc (which also implements http.Handler)
-// that will attempt to map any paths to their corresponding
-// URL. If the path is not provided in the YAML, then the
-// fallback http.Handler will be called instead.
+// T is used to unmarshal the YAML data.
 //
 // YAML is expected to be in the format:
 //
 //     - path: /some-path
 //       url: https://www.some-url.com/demo
 //
-// The only errors that can be returned all related to having
-// invalid YAML data.
-//
-// See MapHandler to create a similar http.HandlerFunc via
-// a mapping of paths to urls.
 type T struct {
 	Path string `yaml:"path"`
 	URL  string `yaml:"url"`
 }
 
+// YAMLtoMap will parse the provided YAML data and return it
+// in the form of a Map.
 func YAMLtoMap(yml []byte) map[string]string {
 
 	t := []T{}
@@ -69,6 +62,22 @@ func YAMLtoMap(yml []byte) map[string]string {
 	return result
 }
 
+// YAMLHandler will parse the provided YAML and then return
+// an http.HandlerFunc (which also implements http.Handler)
+// that will attempt to map any paths to their corresponding
+// URL. If the path is not provided in the YAML, then the
+// fallback http.Handler will be called instead.
+//
+// YAML is expected to be in the format:
+//
+//     - path: /some-path
+//       url: https://www.some-url.com/demo
+//
+// The only errors that can be returned all related to having
+// invalid YAML data.
+//
+// See MapHandler to create a similar http.HandlerFunc via
+// a mapping of paths to urls.
 func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 
 	pathsToUrls := YAMLtoMap(yml)
@@ -82,6 +91,50 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 		}
 
 	}, nil
+}
+
+// URL is used to unmarshal the records within `mapping` from
+//  the JSON data.
+//
+// URLs is used to unmarshal `mapping` from the JSON data.
+//
+// JSON is expected to be in the format:
+//
+//	{
+//			"mapping": [
+//				{
+//					"path": "..."
+//					"url": "..."
+//				},
+//				...
+//			]
+//	}
+//
+type URLs struct {
+	URLs []URL `json:"mapping"`
+}
+type URL struct {
+	Path string `json:"path"`
+	URL  string `json:"url"`
+}
+
+// JSONtoMap will parse the provided JSON data and return it
+// in the form of a Map.
+func JSONtoMap(jsn []byte) map[string]string {
+
+	u := URLs{}
+
+	err := json.Unmarshal(jsn, &u)
+	if err != nil {
+		log.Fatalf("error: %v", err)
+	}
+
+	result := make(map[string]string)
+	for _, entry := range u.URLs {
+		result[entry.Path] = entry.URL
+	}
+
+	return result
 }
 
 // JSONHandler will parse the provided JSON and then return
@@ -107,32 +160,6 @@ func YAMLHandler(yml []byte, fallback http.Handler) (http.HandlerFunc, error) {
 //
 // See MapHandler to create a similar http.HandlerFunc via
 // a mapping of paths to urls.
-type URLs struct {
-	URLs []URL `json:"mapping"`
-}
-
-type URL struct {
-	Path string `json:"path"`
-	URL  string `json:"url"`
-}
-
-func JSONtoMap(jsn []byte) map[string]string {
-
-	u := URLs{}
-
-	err := json.Unmarshal(jsn, &u)
-	if err != nil {
-		log.Fatalf("error: %v", err)
-	}
-
-	result := make(map[string]string)
-	for _, entry := range u.URLs {
-		result[entry.Path] = entry.URL
-	}
-
-	return result
-}
-
 func JSONHandler(jsn []byte, fallback http.Handler) (http.HandlerFunc, error) {
 
 	pathsToUrls := JSONtoMap(jsn)
@@ -148,20 +175,8 @@ func JSONHandler(jsn []byte, fallback http.Handler) (http.HandlerFunc, error) {
 	}, nil
 }
 
-// BoltDBHandler will parse the provided JSON and then return
-// an http.HandlerFunc (which also implements http.Handler)
-// that will attempt to map any paths to their corresponding
-// URL. If the path is not provided in the BoltDB, then the
-// fallback http.Handler will be called instead.
-//
-// BoltDB entries are encoded and must be written to the
-// database using golang.
-//
-// The only errors that can be returned all related to having
-// invalid BoltDB entries.
-//
-// See MapHandler to create a similar http.HandlerFunc via
-// a mapping of paths to urls.
+// JSONtoMap will access the provided BoltDB database and
+// return it's entries  in the form of a Map.
 func BoltDBtoMap(db *bolt.DB) map[string]string {
 
 	result := make(map[string]string)
@@ -183,6 +198,20 @@ func BoltDBtoMap(db *bolt.DB) map[string]string {
 	return result
 }
 
+// BoltDBHandler will parse the provided JSON and then return
+// an http.HandlerFunc (which also implements http.Handler)
+// that will attempt to map any paths to their corresponding
+// URL. If the path is not provided in the BoltDB, then the
+// fallback http.Handler will be called instead.
+//
+// BoltDB entries are encoded and must be written to the
+// database using golang.
+//
+// The only errors that can be returned all related to having
+// invalid BoltDB entries.
+//
+// See MapHandler to create a similar http.HandlerFunc via
+// a mapping of paths to urls.
 func BoltHandler(blt *bolt.DB, fallback http.Handler) (http.HandlerFunc, error) {
 
 	pathsToUrls := BoltDBtoMap(blt)

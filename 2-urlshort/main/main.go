@@ -13,12 +13,12 @@ import (
 
 func main() {
 
-	var yaml_file string
+	var boltdb_file string
 	flag.StringVar(
-		&yaml_file,
-		"yaml_file",
-		"data/pathsToUrls.yaml",
-		"YAML file that maps a path to an HTTP address for redirecting",
+		&boltdb_file,
+		"boltdb_file",
+		"data/pathsToUrls.db",
+		"bolt database that maps a path to an HTTP address for redirecting",
 	)
 
 	var json_file string
@@ -29,24 +29,24 @@ func main() {
 		"JSON file that maps a path to an HTTP address for redirecting",
 	)
 
-	var boltdb_file string
+	var yaml_file string
 	flag.StringVar(
-		&boltdb_file,
-		"boltdb_file",
-		"data/pathsToUrls.db",
-		"bolt database that maps a path to an HTTP address for redirecting",
+		&yaml_file,
+		"yaml_file",
+		"data/pathsToUrls.yaml",
+		"YAML file that maps a path to an HTTP address for redirecting",
 	)
 
 	flag.Parse()
 
-	// Read in data from YAML file.
-	yml, err := ioutil.ReadFile(yaml_file)
+	// Read in data from JSON file.
+	jsn, err := ioutil.ReadFile(json_file)
 	if err != nil {
 		log.Fatal(err)
 	}
 
-	// Read in data from JSON file.
-	jsn, err := ioutil.ReadFile(json_file)
+	// Read in data from YAML file.
+	yml, err := ioutil.ReadFile(yaml_file)
 	if err != nil {
 		log.Fatal(err)
 	}
